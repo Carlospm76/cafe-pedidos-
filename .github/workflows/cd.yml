@@ -1,0 +1,44 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: despliegue-produccion
+  cancel-in-progress: false
+
+jobs:
+  pruebas:
+    uses: ./.github/workflows/ci.yml
+
+  desplegar:
+    name: Desplegar en Render
+    needs: pruebas
+    runs-on: ubuntu-latest
+    environment:
+      name: produccion
+      url: ${{ vars.APP_URL }}
+    steps:
+      - name: Pedir a Render que despliegue este commit
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl --fail --silent --show-error -X POST "${DEPLOY_HOOK}&ref=${GITHUB_SHA}"
+
+      - name: Prueba de humo
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          for intento in $(seq 1 40); do
+            commit=$(curl --silent --max-time 60 "$APP_URL/info" | jq -r '.commit // empty' || true)
+            if [ "$commit" = "$GITHUB_SHA" ]; then
+              echo "Versión $GITHUB_SHA en línea"
+              curl --fail --silent "$APP_URL/health"
+              curl --fail --silent --output /dev/null "$APP_URL/api/menu"
+              exit 0
+            fi
+            echo "Intento $intento: en producción está '${commit:-sin respuesta}'. Esperando 15 s..."
+            sleep 15
+          done
+          echo "La nueva versión no apareció en 10 minutos"
+          exit 1
