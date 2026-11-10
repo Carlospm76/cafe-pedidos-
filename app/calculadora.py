@@ -44,6 +44,6 @@ class CalculadoraPedido:
             if producto is None:
                 raise PedidoInvalido(f"No existe el producto {item.codigo}")
             subtotal += producto.precio * item.cantidad
-        descuento = subtotal // 10 if subtotal > UMBRAL_DESCUENTO else 0
+        descuento = subtotal // 10 if subtotal >= UMBRAL_DESCUENTO else 0
         return Resumen(subtotal, descuento, subtotal - descuento)
 
