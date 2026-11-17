@@ -54,3 +54,27 @@ def test_poco_antes_del_umbral_no_hay_descuento():  # R3: 49.500
     assert r.subtotal == 49_500
     assert r.descuento == 0
 
+# --- Parte 5: HU-R4 ---
+MARTES = date(2026, 11, 3)
+calculadora_martes = CalculadoraPedido(hoy=lambda: MARTES)
+
+
+def test_el_martes_el_cafe_de_la_casa_cuesta_la_mitad():  # R4
+    r = calculadora_martes.calcular([Item("CAFE_CASA", 1)])
+    assert r.subtotal == 16_000
+
+
+def test_el_martes_los_demas_productos_no_cambian():  # R4
+    r = calculadora_martes.calcular([Item("TINTO", 2)])
+    assert r.subtotal == 6_000
+
+
+def test_el_lunes_el_cafe_de_la_casa_tiene_precio_normal():  # R4
+    r = calculadora.calcular([Item("CAFE_CASA", 1)])
+    assert r.subtotal == 32_000
+
+
+def test_el_descuento_r3_se_calcula_sobre_el_precio_del_martes():  # R3 + R4
+    r = calculadora_martes.calcular([Item("CAFE_CASA", 2)])
+    assert r.subtotal == 32_000   # 2 x 16.000
+    assert r.descuento == 0       # ya no llega a 50.000
